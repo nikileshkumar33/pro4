@@ -1,1079 +1,409 @@
-const API_URL = "http://localhost:5050";
 
+const API_URL = "";
 
 // ======================================================
 // BANK ACCOUNT CLASS
 // ======================================================
 
 class BankAccount {
-
-    constructor(
-        id,
-        name,
-        fname,
-        accountNumber,
-        balance
-    ) {
-
+    constructor(id, name, fname, accountNumber, balance) {
         this.id = id;
         this.name = name;
         this.fname = fname;
         this.accountNumber = accountNumber;
         this.balance = Number(balance);
-
         this.transactions = [];
-    }
-
-
-    // ==================================================
-    // DEPOSIT
-    // ==================================================
-
-    async deposit(amount) {
-
-        if (amount <= 0) {
-
-            alert("Invalid deposit amount!");
-
-            return false;
-        }
-
-        try {
-
-            const response = await fetch(
-                `${API_URL}/accounts/${this.accountNumber}/deposit`,
-                {
-                    method: "PUT",
-
-                    headers: {
-                        "Content-Type":
-                            "application/json"
-                    },
-
-                    body: JSON.stringify({
-                        amount: amount
-                    })
-                }
-            );
-
-            const data =
-                await response.json();
-
-            if (!response.ok) {
-
-                alert(
-                    data.message ||
-                    "Error depositing money"
-                );
-
-                return false;
-            }
-
-            alert(
-                "₹" +
-                amount.toLocaleString("en-IN") +
-                " deposited successfully."
-            );
-
-            await loadAccounts();
-
-            return true;
-
-        }
-        catch (error) {
-
-            console.error(error);
-
-            alert("Cannot connect to server");
-
-            return false;
-        }
-    }
-
-
-    // ==================================================
-    // WITHDRAW
-    // ==================================================
-
-    async withdraw(amount) {
-
-        if (amount <= 0) {
-
-            alert(
-                "Invalid withdrawal amount!"
-            );
-
-            return false;
-        }
-
-        if (amount > this.balance) {
-
-            alert(
-                "Insufficient balance!"
-            );
-
-            return false;
-        }
-
-        try {
-
-            const response = await fetch(
-                `${API_URL}/accounts/${this.accountNumber}/withdraw`,
-                {
-                    method: "PUT",
-
-                    headers: {
-                        "Content-Type":
-                            "application/json"
-                    },
-
-                    body: JSON.stringify({
-                        amount: amount
-                    })
-                }
-            );
-
-            const data =
-                await response.json();
-
-            if (!response.ok) {
-
-                alert(
-                    data.message ||
-                    "Error withdrawing money"
-                );
-
-                return false;
-            }
-
-            alert(
-                "₹" +
-                amount.toLocaleString("en-IN") +
-                " withdrawn successfully."
-            );
-
-            await loadAccounts();
-
-            return true;
-
-        }
-        catch (error) {
-
-            console.error(error);
-
-            alert("Cannot connect to server");
-
-            return false;
-        }
-    }
-
-
-    // ==================================================
-    // CHECK BALANCE
-    // ==================================================
-
-    checkBalance() {
-
-        return this.balance;
-    }
-
-
-    // ==================================================
-    // SHOW ACCOUNT
-    // ==================================================
-
-    showAccount() {
-
-        return `
-
-            <h3>Account Details</h3>
-
-            <p>
-                <strong>Account Holder:</strong>
-                ${this.name}
-            </p>
-
-            <p>
-                <strong>Father's Name:</strong>
-                ${this.fname}
-            </p>
-
-            <p>
-                <strong>Account Number:</strong>
-                ${this.accountNumber}
-            </p>
-
-            <p>
-                <strong>Current Balance:</strong>
-                ₹${this.balance.toLocaleString("en-IN")}
-            </p>
-
-        `;
-    }
-
-
-    // ==================================================
-    // TOTAL DEPOSITS
-    // ==================================================
-
-    totalDeposits() {
-
-        return this.transactions
-            .filter(
-                transaction =>
-                    transaction.type === "Deposit"
-            )
-            .reduce(
-                (total, transaction) =>
-                    total +
-                    Number(transaction.amount),
-                0
-            );
-    }
-
-
-    // ==================================================
-    // TOTAL WITHDRAWALS
-    // ==================================================
-
-    totalWithdrawals() {
-
-        return this.transactions
-            .filter(
-                transaction =>
-                    transaction.type === "Withdrawal"
-            )
-            .reduce(
-                (total, transaction) =>
-                    total +
-                    Number(transaction.amount),
-                0
-            );
     }
 }
 
-
-
 // ======================================================
-// GLOBAL VARIABLES
+// DOM ELEMENTS
 // ======================================================
+
+const accountForm = document.getElementById("accountForm");
+const nameInput = document.getElementById("name");
+const fnameInput = document.getElementById("fname");
+const openingBalanceInput = document.getElementById("openingBalance");
+
+const accountTableBody = document.getElementById("accountTableBody");
+const accountNumberInput = document.getElementById("accountNumber");
+const amountInput = document.getElementById("amount");
+const transactionHistory = document.getElementById("transactionHistory");
 
 let accounts = [];
 
-let account = null;
+// ======================================================
+// API HELPER
+// ======================================================
 
+async function apiRequest(endpoint, options = {}) {
+    let response;
 
+    try {
+        response = await fetch(`${API_URL}${endpoint}`, {
+            ...options,
+            headers: {
+                "Content-Type": "application/json",
+                ...options.headers
+            }
+        });
+    } catch (error) {
+        console.error("Network error:", error);
+        throw new Error(
+            "Cannot connect to the server. Check your backend deployment."
+        );
+    }
+
+    const contentType = response.headers.get("content-type") || "";
+    let data;
+
+    if (contentType.includes("application/json")) {
+        data = await response.json();
+    } else {
+        const text = await response.text();
+        data = text ? { message: text } : {};
+    }
+
+    if (!response.ok) {
+        throw new Error(
+            data.message || data.error || `Request failed (${response.status})`
+        );
+    }
+
+    return data;
+}
 
 // ======================================================
-// LOAD ACCOUNTS FROM MYSQL
+// MESSAGE DISPLAY
+// ======================================================
+
+function showMessage(message, type = "info") {
+    let messageBox = document.getElementById("messageBox");
+
+    if (!messageBox) {
+        messageBox = document.createElement("div");
+        messageBox.id = "messageBox";
+        messageBox.setAttribute("role", "status");
+        messageBox.style.padding = "12px";
+        messageBox.style.margin = "12px 0";
+        messageBox.style.borderRadius = "8px";
+
+        const container = document.querySelector("main") ||
+            document.querySelector(".container") ||
+            document.body;
+
+        container.prepend(messageBox);
+    }
+
+    messageBox.textContent = message;
+    messageBox.style.color = type === "error" ? "#b91c1c" : "#166534";
+    messageBox.style.background =
+        type === "error" ? "#fee2e2" : "#dcfce7";
+}
+
+function handleError(error) {
+    console.error(error);
+    showMessage(error.message || "Something went wrong.", "error");
+}
+
+// ======================================================
+// LOAD ACCOUNTS
 // ======================================================
 
 async function loadAccounts() {
-
     try {
+        const data = await apiRequest("/accounts");
 
-        const response =
-            await fetch(
-                `${API_URL}/accounts`
-            );
+        accounts = Array.isArray(data)
+            ? data
+            : Array.isArray(data.accounts)
+                ? data.accounts
+                : [];
 
-        if (!response.ok) {
-
-            throw new Error(
-                `Server returned ${response.status}`
-            );
-        }
-
-        const data =
-            await response.json();
-
-        accounts =
-            data.map(item => {
-
-                return new BankAccount(
-                    item.id,
-                    item.name,
-                    item.fname,
-                    item.accountNumber,
-                    item.balance
-                );
-
-            });
-
-        updateAccountDropdown();
-
-
-        // Keep currently selected account
-        if (account !== null) {
-
-            const selectedAccount =
-                accounts.find(
-                    acc =>
-                        acc.accountNumber ===
-                        account.accountNumber
-                );
-
-            if (selectedAccount) {
-
-                account =
-                    selectedAccount;
-
-                document.getElementById(
-                    "accountSelect"
-                ).value =
-                    account.accountNumber;
-
-                showAccount();
-            }
-        }
-
-    }
-    catch (error) {
-
-        console.error(
-            "LOAD ACCOUNTS ERROR:",
-            error
-        );
-
-        alert(
-            "Cannot connect to server"
-        );
+        displayAccounts();
+    } catch (error) {
+        handleError(error);
     }
 }
 
-
-
 // ======================================================
-// GENERATE ACCOUNT NUMBER
+// DISPLAY ACCOUNTS
 // ======================================================
 
-function generateAccountNumber() {
-
-    let accountNumber;
-
-    do {
-
-        accountNumber =
-            "AC" +
-            Math.floor(
-                10000000 +
-                Math.random() * 90000000
-            );
-
+function displayAccounts() {
+    if (!accountTableBody) {
+        console.warn("Account table body element not found.");
+        return;
     }
-    while (
-        accounts.some(
-            acc =>
-                acc.accountNumber ===
-                accountNumber
-        )
-    );
 
-    return accountNumber;
+    accountTableBody.replaceChildren();
+
+    if (accounts.length === 0) {
+        const row = document.createElement("tr");
+        const cell = document.createElement("td");
+
+        cell.colSpan = 5;
+        cell.textContent = "No bank accounts found.";
+        row.appendChild(cell);
+        accountTableBody.appendChild(row);
+        return;
+    }
+
+    accounts.forEach(accountData => {
+        const account = new BankAccount(
+            accountData.id,
+            accountData.name,
+            accountData.fname,
+            accountData.accountNumber,
+            accountData.balance
+        );
+
+        const row = document.createElement("tr");
+
+        [
+            account.id,
+            account.name,
+            account.fname,
+            account.accountNumber,
+            account.balance.toFixed(2)
+        ].forEach(value => {
+            const cell = document.createElement("td");
+            cell.textContent = String(value ?? "");
+            row.appendChild(cell);
+        });
+
+        accountTableBody.appendChild(row);
+    });
 }
-
-
 
 // ======================================================
 // CREATE ACCOUNT
 // ======================================================
 
-async function createAccount() {
+async function createAccount(event) {
+    if (event) event.preventDefault();
 
-    const name =
-        document
-            .getElementById("name")
-            .value
-            .trim();
+    const name = nameInput?.value.trim();
+    const fname = fnameInput?.value.trim();
+    const openingBalance = Number(openingBalanceInput?.value);
 
-    const fname =
-        document
-            .getElementById("fname")
-            .value
-            .trim();
-
-    const openingBalance =
-        Number(
-            document
-                .getElementById("openingBalance")
-                .value
-        );
-
-
-    // ================= VALIDATION =================
-
-    if (name === "") {
-
-        alert(
-            "Please enter customer name."
-        );
-
+    if (!name || !fname) {
+        showMessage("Please enter the account holder and father's name.", "error");
         return;
     }
-
-
-    if (fname === "") {
-
-        alert(
-            "Please enter father's name."
-        );
-
-        return;
-    }
-
 
     if (
-        isNaN(openingBalance) ||
+        openingBalanceInput?.value.trim() === "" ||
+        !Number.isFinite(openingBalance) ||
         openingBalance < 0
     ) {
-
-        alert(
-            "Invalid opening balance."
-        );
-
+        showMessage("Enter a valid opening balance.", "error");
         return;
     }
-
-
-    // ================= ACCOUNT NUMBER =================
-
-    const accountNumber =
-        generateAccountNumber();
-
-
-    // ================= SEND TO SERVER =================
 
     try {
+        const result = await apiRequest("/accounts", {
+            method: "POST",
+            body: JSON.stringify({
+                name,
+                fname,
+                openingBalance
+            })
+        });
 
-        const response =
-            await fetch(
-                `${API_URL}/accounts`,
-                {
+        showMessage(result.message || "Account created successfully.");
 
-                    method: "POST",
-
-                    headers: {
-                        "Content-Type":
-                            "application/json"
-                    },
-
-                    body: JSON.stringify({
-
-                        name: name,
-
-                        fname: fname,
-
-                        accountNumber:
-                            accountNumber,
-
-                        balance:
-                            openingBalance
-
-                    })
-                }
-            );
-
-
-        const data =
-            await response.json();
-
-
-        if (!response.ok) {
-
-            alert(
-                data.message ||
-                "Error creating account"
-            );
-
-            return;
-        }
-
-
-        // ================= RELOAD ACCOUNTS =================
+        if (accountForm) accountForm.reset();
 
         await loadAccounts();
-
-
-        account =
-            accounts.find(
-                acc =>
-                    acc.accountNumber ===
-                    accountNumber
-            );
-
-
-        updateAccountDropdown();
-
-
-        document.getElementById(
-            "accountSelect"
-        ).value =
-            accountNumber;
-
-
-        // ================= CLEAR FORM =================
-
-        document.getElementById(
-            "name"
-        ).value = "";
-
-        document.getElementById(
-            "fname"
-        ).value = "";
-
-        document.getElementById(
-            "openingBalance"
-        ).value = "";
-
-
-        alert(
-            "Account created successfully!\n\n" +
-            "Account Number: " +
-            accountNumber
-        );
-
-
-        showAccount();
-
-    }
-    catch (error) {
-
-        console.error(
-            "CREATE ACCOUNT ERROR:",
-            error
-        );
-
-        alert(
-            "Cannot connect to server"
-        );
+    } catch (error) {
+        handleError(error);
     }
 }
 
-
-
 // ======================================================
-// UPDATE ACCOUNT DROPDOWN
-// ======================================================
-
-function updateAccountDropdown() {
-
-    const select =
-        document.getElementById(
-            "accountSelect"
-        );
-
-
-    select.innerHTML = `
-
-        <option value="">
-            Select Customer Account
-        </option>
-
-    `;
-
-
-    accounts.forEach(
-        acc => {
-
-            const option =
-                document.createElement(
-                    "option"
-                );
-
-
-            option.value =
-                acc.accountNumber;
-
-
-            option.textContent =
-                acc.name +
-                " - " +
-                acc.accountNumber;
-
-
-            select.appendChild(option);
-
-        }
-    );
-}
-
-
-
-// ======================================================
-// SELECT ACCOUNT
-// ======================================================
-
-function selectAccount() {
-
-    const accountNumber =
-        document
-            .getElementById(
-                "accountSelect"
-            )
-            .value;
-
-
-    if (accountNumber === "") {
-
-        account = null;
-
-        document.getElementById(
-            "output"
-        ).innerHTML =
-            "Please select a customer account.";
-
-        return;
-    }
-
-
-    account =
-        accounts.find(
-            acc =>
-                acc.accountNumber ===
-                accountNumber
-        );
-
-
-    if (account) {
-
-        showAccount();
-    }
-}
-
-
-
-// ======================================================
-// DEPOSIT MONEY
+// DEPOSIT
 // ======================================================
 
 async function depositMoney() {
+    const accountNumber = accountNumberInput?.value.trim();
+    const amount = Number(amountInput?.value);
 
-    if (account === null) {
-
-        alert(
-            "Please select a customer account first."
-        );
-
+    if (!accountNumber) {
+        showMessage("Enter the account number.", "error");
         return;
     }
-
-
-    const amount =
-        Number(
-            document
-                .getElementById("amount")
-                .value
-        );
-
 
     if (
-        isNaN(amount) ||
+        amountInput?.value.trim() === "" ||
+        !Number.isFinite(amount) ||
         amount <= 0
     ) {
-
-        alert(
-            "Please enter a valid deposit amount."
-        );
-
+        showMessage("Enter a deposit amount greater than zero.", "error");
         return;
     }
-
-
-    const success =
-        await account.deposit(amount);
-
-
-    if (success) {
-
-        clearAmount();
-
-        showAccount();
-    }
-}
-
-
-
-// ======================================================
-// WITHDRAW MONEY
-// ======================================================
-
-async function withdrawMoney() {
-
-    if (account === null) {
-
-        alert(
-            "Please select a customer account first."
-        );
-
-        return;
-    }
-
-
-    const amount =
-        Number(
-            document
-                .getElementById("amount")
-                .value
-        );
-
-
-    if (
-        isNaN(amount) ||
-        amount <= 0
-    ) {
-
-        alert(
-            "Please enter a valid withdrawal amount."
-        );
-
-        return;
-    }
-
-
-    const success =
-        await account.withdraw(amount);
-
-
-    if (success) {
-
-        clearAmount();
-
-        showAccount();
-    }
-}
-
-
-
-// ======================================================
-// CHECK BALANCE
-// ======================================================
-
-function checkBalance() {
-
-    if (account === null) {
-
-        alert(
-            "Please select a customer account first."
-        );
-
-        return;
-    }
-
-
-    const balance =
-        account.checkBalance();
-
-
-    document.getElementById(
-        "output"
-    ).innerHTML = `
-
-        <h3>Balance Enquiry</h3>
-
-        <p>
-            <strong>Account Holder:</strong>
-            ${account.name}
-        </p>
-
-        <p>
-            <strong>Father's Name:</strong>
-            ${account.fname}
-        </p>
-
-        <p>
-            <strong>Account Number:</strong>
-            ${account.accountNumber}
-        </p>
-
-        <h2>
-            Current Balance:
-            ₹${balance.toLocaleString("en-IN")}
-        </h2>
-
-    `;
-}
-
-
-
-// ======================================================
-// SHOW ACCOUNT DETAILS
-// ======================================================
-
-function showAccount() {
-
-    if (account === null) {
-
-        document.getElementById(
-            "output"
-        ).innerHTML =
-            "Please select a customer account.";
-
-        return;
-    }
-
-
-    document.getElementById(
-        "output"
-    ).innerHTML =
-        account.showAccount();
-}
-
-
-
-// ======================================================
-// SHOW TRANSACTIONS
-// ======================================================
-
-async function showTransactions() {
-
-    if (account === null) {
-
-        alert(
-            "Please select a customer account."
-        );
-
-        return;
-    }
-
 
     try {
-
-        const response =
-            await fetch(
-                `${API_URL}/accounts/${account.accountNumber}/transactions`
-            );
-
-
-        const transactions =
-            await response.json();
-
-
-        if (!response.ok) {
-
-            alert(
-                transactions.message ||
-                "Error loading transactions"
-            );
-
-            return;
-        }
-
-
-        let html = `
-
-            <h3>Transaction History</h3>
-
-            <p>
-                <strong>Account Holder:</strong>
-                ${account.name}
-            </p>
-
-            <p>
-                <strong>Father's Name:</strong>
-                ${account.fname}
-            </p>
-
-            <p>
-                <strong>Account Number:</strong>
-                ${account.accountNumber}
-            </p>
-
-            <hr>
-
-        `;
-
-
-        // ================= TRANSACTIONS =================
-
-        transactions.forEach(
-            transaction => {
-
-                const amount =
-                    Number(
-                        transaction.amount
-                    );
-
-
-                if (
-                    transaction.type ===
-                    "Deposit"
-                ) {
-
-                    html += `
-
-                        <div class="transaction deposit">
-
-                            <strong>
-                                Deposit
-                            </strong>
-
-                            +₹${amount.toLocaleString("en-IN")}
-
-                            <br>
-
-                            <small>
-                                ${transaction.date}
-                            </small>
-
-                        </div>
-
-                    `;
-                }
-
-
-                else if (
-                    transaction.type ===
-                    "Withdrawal"
-                ) {
-
-                    html += `
-
-                        <div class="transaction withdraw">
-
-                            <strong>
-                                Withdrawal
-                            </strong>
-
-                            -₹${amount.toLocaleString("en-IN")}
-
-                            <br>
-
-                            <small>
-                                ${transaction.date}
-                            </small>
-
-                        </div>
-
-                    `;
-                }
-
-
-                else {
-
-                    html += `
-
-                        <div class="transaction">
-
-                            <strong>
-                                Opening Balance
-                            </strong>
-
-                            ₹${amount.toLocaleString("en-IN")}
-
-                            <br>
-
-                            <small>
-                                ${transaction.date}
-                            </small>
-
-                        </div>
-
-                    `;
-                }
-
+        const result = await apiRequest(
+            `/accounts/${encodeURIComponent(accountNumber)}/deposit`,
+            {
+                method: "POST",
+                body: JSON.stringify({ amount })
             }
         );
 
+        showMessage(result.message || "Deposit successful.");
+        if (amountInput) amountInput.value = "";
 
-        // ================= SUMMARY =================
-
-        const totalDeposits =
-            transactions
-                .filter(
-                    transaction =>
-                        transaction.type ===
-                        "Deposit"
-                )
-                .reduce(
-                    (total, transaction) =>
-                        total +
-                        Number(
-                            transaction.amount
-                        ),
-                    0
-                );
-
-
-        const totalWithdrawals =
-            transactions
-                .filter(
-                    transaction =>
-                        transaction.type ===
-                        "Withdrawal"
-                )
-                .reduce(
-                    (total, transaction) =>
-                        total +
-                        Number(
-                            transaction.amount
-                        ),
-                    0
-                );
-
-
-        html += `
-
-            <hr>
-
-            <p>
-                <strong>
-                    Total Deposits:
-                </strong>
-
-                ₹${totalDeposits.toLocaleString("en-IN")}
-            </p>
-
-            <p>
-                <strong>
-                    Total Withdrawals:
-                </strong>
-
-                ₹${totalWithdrawals.toLocaleString("en-IN")}
-            </p>
-
-            <h3>
-                Current Balance:
-                ₹${account.balance.toLocaleString("en-IN")}
-            </h3>
-
-        `;
-
-
-        document.getElementById(
-            "output"
-        ).innerHTML = html;
-
-    }
-    catch (error) {
-
-        console.error(
-            "TRANSACTION ERROR:",
-            error
-        );
-
-        alert(
-            "Cannot connect to server"
-        );
+        await loadAccounts();
+    } catch (error) {
+        handleError(error);
     }
 }
 
-
-
 // ======================================================
-// CLEAR AMOUNT
+// WITHDRAW
 // ======================================================
 
-function clearAmount() {
+async function withdrawMoney() {
+    const accountNumber = accountNumberInput?.value.trim();
+    const amount = Number(amountInput?.value);
 
-    document.getElementById(
-        "amount"
-    ).value = "";
+    if (!accountNumber) {
+        showMessage("Enter the account number.", "error");
+        return;
+    }
+
+    if (
+        amountInput?.value.trim() === "" ||
+        !Number.isFinite(amount) ||
+        amount <= 0
+    ) {
+        showMessage("Enter a withdrawal amount greater than zero.", "error");
+        return;
+    }
+
+    try {
+        const result = await apiRequest(
+            `/accounts/${encodeURIComponent(accountNumber)}/withdraw`,
+            {
+                method: "POST",
+                body: JSON.stringify({ amount })
+            }
+        );
+
+        showMessage(result.message || "Withdrawal successful.");
+        if (amountInput) amountInput.value = "";
+
+        await loadAccounts();
+    } catch (error) {
+        handleError(error);
+    }
 }
 
-
-
 // ======================================================
-// INITIAL LOAD
+// TRANSACTION HISTORY
 // ======================================================
 
-loadAccounts();
+async function loadTransactionHistory() {
+    const accountNumber = accountNumberInput?.value.trim();
+
+    if (!accountNumber) {
+        showMessage("Enter the account number first.", "error");
+        return;
+    }
+
+    try {
+        const data = await apiRequest(
+            `/accounts/${encodeURIComponent(accountNumber)}/transactions`
+        );
+
+        const transactions = Array.isArray(data)
+            ? data
+            : Array.isArray(data.transactions)
+                ? data.transactions
+                : [];
+
+        displayTransactions(transactions);
+    } catch (error) {
+        handleError(error);
+    }
+}
+
+function displayTransactions(transactions) {
+    if (!transactionHistory) {
+        console.warn("Transaction history element not found.");
+        return;
+    }
+
+    transactionHistory.replaceChildren();
+
+    if (transactions.length === 0) {
+        transactionHistory.textContent = "No transactions found.";
+        return;
+    }
+
+    const table = document.createElement("table");
+    const thead = document.createElement("thead");
+    const headerRow = document.createElement("tr");
+
+    ["ID", "Type", "Amount", "Date"].forEach(title => {
+        const th = document.createElement("th");
+        th.textContent = title;
+        headerRow.appendChild(th);
+    });
+
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    const tbody = document.createElement("tbody");
+
+    transactions.forEach(transaction => {
+        const row = document.createElement("tr");
+
+        const values = [
+            transaction.id ?? "",
+            transaction.type ?? transaction.transactionType ?? "",
+            Number(transaction.amount ?? 0).toFixed(2),
+            transaction.createdAt ??
+                transaction.created_at ??
+                transaction.date ??
+                ""
+        ];
+
+        values.forEach(value => {
+            const cell = document.createElement("td");
+            cell.textContent = String(value);
+            row.appendChild(cell);
+        });
+
+        tbody.appendChild(row);
+    });
+
+    table.appendChild(tbody);
+    transactionHistory.appendChild(table);
+}
+
+// ======================================================
+// EVENT LISTENERS
+// ======================================================
+
+if (accountForm) {
+    accountForm.addEventListener("submit", createAccount);
+}
+
+// These IDs must match the buttons in index.html.
+document.getElementById("depositBtn")
+    ?.addEventListener("click", depositMoney);
+
+document.getElementById("withdrawBtn")
+    ?.addEventListener("click", withdrawMoney);
+
+document.getElementById("historyBtn")
+    ?.addEventListener("click", loadTransactionHistory);
+
+// ======================================================
+// START APPLICATION
+// ======================================================
+
+document.addEventListener("DOMContentLoaded", loadAccounts);
