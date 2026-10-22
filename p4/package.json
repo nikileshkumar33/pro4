@@ -2,9 +2,9 @@
   "name": "p4",
   "version": "1.0.0",
   "description": "Banking System",
-  "main": "server3.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node server3.js"
+    "start": "node server.js"
   },
   "keywords": [],
   "author": "",
