@@ -1,0 +1,257 @@
+
+/* ==============================
+   GENERAL RESET
+============================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: linear-gradient(135deg, #e0f2fe, #eef2ff, #f8fafc);
+    color: #1e293b;
+    min-height: 100vh;
+    padding: 30px 15px;
+}
+
+/* ==============================
+   MAIN CONTAINER
+============================== */
+
+.container {
+    max-width: 950px;
+    margin: 0 auto;
+}
+
+h1 {
+    text-align: center;
+    color: #123b72;
+    font-size: 36px;
+    margin-bottom: 30px;
+    letter-spacing: 0.5px;
+}
+
+/* ==============================
+   CONTENT CARDS
+============================== */
+
+.box,
+.result {
+    background: #ffffff;
+    padding: 25px;
+    margin-bottom: 22px;
+    border-radius: 16px;
+    box-shadow: 0 8px 25px rgba(15, 23, 42, 0.08);
+    border: 1px solid #e2e8f0;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.box:hover,
+.result:hover {
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+}
+
+h2 {
+    color: #174a8b;
+    font-size: 22px;
+    margin-bottom: 18px;
+}
+
+/* ==============================
+   INPUTS AND SELECT
+============================== */
+
+input,
+select {
+    display: block;
+    width: 100%;
+    padding: 13px 15px;
+    margin-bottom: 15px;
+    font-size: 16px;
+    color: #1e293b;
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 9px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+input::placeholder {
+    color: #94a3b8;
+}
+
+input:focus,
+select:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.13);
+    background: #ffffff;
+}
+
+/* ==============================
+   BUTTONS
+============================== */
+
+button {
+    padding: 12px 18px;
+    border: none;
+    border-radius: 9px;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease,
+                background 0.2s ease;
+}
+
+button:hover {
+    background: linear-gradient(135deg, #1d4ed8, #1e40af);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 14px rgba(37, 99, 235, 0.25);
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+/* Create Account button */
+.box > button {
+    width: 100%;
+}
+
+/* ==============================
+   BANK OPERATION BUTTONS
+============================== */
+
+.buttons {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 5px;
+}
+
+.buttons button {
+    width: 100%;
+    min-height: 46px;
+}
+
+/* Deposit button */
+.buttons button:nth-child(1) {
+    background: linear-gradient(135deg, #16a34a, #15803d);
+}
+
+.buttons button:nth-child(1):hover {
+    background: #166534;
+}
+
+/* Withdraw button */
+.buttons button:nth-child(2) {
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+}
+
+.buttons button:nth-child(2):hover {
+    background: #991b1b;
+}
+
+/* Check Balance button */
+.buttons button:nth-child(3) {
+    background: linear-gradient(135deg, #0891b2, #0e7490);
+}
+
+/* Account Details button */
+.buttons button:nth-child(4) {
+    background: linear-gradient(135deg, #7c3aed, #6d28d9);
+}
+
+/* Transactions button */
+.buttons button:nth-child(5) {
+    background: linear-gradient(135deg, #475569, #334155);
+}
+
+/* ==============================
+   RESULT SECTION
+============================== */
+
+.result {
+    border-top: 5px solid #2563eb;
+    min-height: 150px;
+    overflow-wrap: anywhere;
+}
+
+#output {
+    line-height: 1.8;
+    color: #475569;
+}
+
+#output h3 {
+    color: #174a8b;
+    font-size: 21px;
+    margin: 10px 0 15px;
+}
+
+#output h2 {
+    color: #15803d;
+    margin-top: 18px;
+}
+
+#output p {
+    margin-bottom: 8px;
+}
+
+#output strong {
+    color: #1e293b;
+}
+
+/* ==============================
+   TRANSACTION HISTORY
+============================== */
+
+.transaction {
+    padding: 15px;
+    margin: 12px 0;
+    border-radius: 10px;
+    background: #f1f5f9;
+    border-left: 5px solid #64748b;
+    overflow-wrap: anywhere;
+}
+
+.transaction strong {
+    display: inline-block;
+    margin-right: 10px;
+}
+
+.transaction small {
+    display: inline-block;
+    margin-top: 5px;
+    color: #64748b;
+}
+
+/* Deposit transaction */
+.transaction.deposit {
+    background: #f0fdf4;
+    border-left-color: #16a34a;
+}
+
+.transaction.deposit strong {
+    color: #15803d;
+}
+
+/* Withdrawal transaction */
+.transaction.withdraw {
+    background: #fef2f2;
+    border-left-color: #dc2626;
+}
+
+.transaction.withdraw strong {
+    color: #b91c1c;
+}
+
+/* Horizontal line */
+#output hr {
+    border: none;
+    border-top: 1px solid #e2e8f0;
+    margin: 18px 0;
+}

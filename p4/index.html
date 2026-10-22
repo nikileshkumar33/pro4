@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Banking System</title>
+
+    <link rel="stylesheet" href="style.css">
+    
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>🏦 Banking System</h1>
+        <div class="box">
+            <h2>Create Account</h2>
+            <input
+                type="text"
+                id="name"
+                placeholder="Customer Name"
+            >
+            <input 
+            type=""text
+            id="fname"
+            placeholder="Fathers Name"
+            >
+            <input
+                type="number"
+                id="openingBalance"
+                placeholder="Opening Balance"
+            >
+            <button onclick="createAccount()">
+                Create Account
+            </button>
+
+        </div>
+        <div class="box">
+
+            <h2>Select Customer</h2>
+
+            <select id="accountSelect" onchange="selectAccount()">
+
+                <option value="">
+                    Select Customer Account
+                </option>
+
+            </select>
+
+        </div>
+        <div class="box">
+            <h2>Bank Operations</h2>
+            <input
+                type="number"
+                id="amount"
+                placeholder="Enter Amount"
+            >
+
+            <div class="buttons">
+
+                <button onclick="depositMoney()">
+                    Deposit
+                </button>
+
+                <button onclick="withdrawMoney()">
+                    Withdraw
+                </button>
+
+                <button onclick="checkBalance()">
+                    Check Balance
+                </button>
+
+                <button onclick="showAccount()">
+                    Account Details
+                </button>
+
+                <button onclick="showTransactions()">
+                    Transactions
+                </button>
+            </div>
+        </div>
+        <div class="result">
+            <h2>Bank Account</h2>
+
+            <div id="output">
+                Create an account to begin.
+            </div>
+        </div>
+    </div>
+    <script src="pro4.js"></script>
+</body>
+</html>
